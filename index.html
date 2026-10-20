@@ -59,7 +59,7 @@ textarea{min-height:125px;line-height:1.55;resize:vertical}label{font-weight:650
 <strong>3. 文字互译</strong>
 <label for="source">原文（可编辑，也可直接粘贴）</label>
 <textarea id="source" placeholder="粘贴英文、中文或阿拉伯文……"></textarea>
-<button id="aiText">AI 翻译文字</button>
+<button id="aiText">翻译文字（中英互译）</button>
 <div id="textStatus" class="status"></div>
 <label for="result">翻译结果</label>
 <textarea id="result" placeholder="译文会显示在这里"></textarea>
@@ -156,6 +156,28 @@ async function callVisionAPI(userPrompt, dataUrl){
   if(!answer) throw new Error('AI 没有返回答案，请稍后重试。');
   return String(answer);
 }
+
+async function translateTextOnline(inputText, direction){
+  let target = 'zh-CN';
+  if(direction === 'zh-en') target = 'en';
+  else if(direction === 'auto' && /[一-龥]/.test(inputText)) target = 'en';
+  const chunks = inputText.match(/[\\s\\S]{1,1600}/g) || [];
+  const translated = [];
+  let detected = '';
+  for(const chunk of chunks){
+    const params = new URLSearchParams({client:'gtx',sl:'auto',tl:target,dt:'t',q:chunk});
+    const response = await fetch('https://translate.googleapis.com/translate_a/single?' + params.toString(), {
+      method:'GET', headers:{'Accept':'application/json'}
+    });
+    if(!response.ok) throw new Error('在线翻译服务返回 HTTP ' + response.status);
+    const data = await response.json();
+    if(!Array.isArray(data) || !Array.isArray(data[0])) throw new Error('在线翻译服务没有返回译文');
+    translated.push(data[0].map(part => Array.isArray(part) ? (part[0] || '') : '').join(''));
+    if(data[2]) detected = String(data[2]);
+  }
+  return {sourceText:inputText, translatedText:translated.join(' '), detectedLanguage:detected, uncertainties:[]};
+}
+
 function getDataUrl(file){
   return new Promise((resolve,reject)=>{
     const reader = new FileReader();
@@ -214,21 +236,15 @@ el('aiText').addEventListener('click',async()=>{
   if(!text){setStatus('textStatus','请先输入或粘贴要翻译的文字。',true);return;}
   if(text.length>12000){setStatus('textStatus','文字超过 12,000 字符，请分段翻译。',true);return;}
   const btn=el('aiText');btn.disabled=true;
-  setStatus('textStatus','AI 正在翻译文字……');
+  setStatus('textStatus','正在翻译文字，请保持页面打开……');
   try{
-    const direction=el('direction').value;
-    const raw=await callVisionAPI(promptFor(direction,text,false));
-    const data=parseAnswer(raw,text,false);
+    const data=await translateTextOnline(text,el('direction').value);
     el('source').value=data.sourceText || text;
     el('result').value=data.translatedText;
-    const notes=[];
-    if(data.detectedLanguage) notes.push('检测语言：'+data.detectedLanguage);
-    if(data.uncertainties.length) notes.push('建议核对：\n• '+data.uncertainties.join('\n• '));
-    else notes.push('请核对商务重要信息。');
-    el('uncertainties').textContent=notes.join('\n');
+    el('uncertainties').textContent='请核对人名、公司名、邮箱、金额、数量、尺寸和交期。';
     setStatus('textStatus','翻译完成。请核对商务信息。');
   }catch(error){
-    setStatus('textStatus','翻译失败：'+(error.message || '第三方服务暂不可用。')+'\n请稍后重试。',true);
+    setStatus('textStatus','翻译失败：'+(error.message || '在线翻译服务暂不可用。')+'\n请检查网络后重试。',true);
   }finally{btn.disabled=false;}
 });
 el('copy').addEventListener('click',async()=>{
