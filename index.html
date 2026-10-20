@@ -161,7 +161,7 @@ async function translateTextOnline(inputText, direction){
   let target = 'zh-CN';
   if(direction === 'zh-en') target = 'en';
   else if(direction === 'auto' && /[一-龥]/.test(inputText)) target = 'en';
-  const chunks = inputText.match(/[\\s\\S]{1,1600}/g) || [];
+  const chunks = inputText.match(/[\s\S]{1,1600}/g) || [];
   const translated = [];
   let detected = '';
   for(const chunk of chunks){
