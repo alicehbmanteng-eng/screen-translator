@@ -1,4 +1,4 @@
-const CACHE_NAME = 'screen-translator-v9';
+const CACHE_NAME = 'screen-translator-v10';
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', './index.html', './manifest.json'])));
   self.skipWaiting();
