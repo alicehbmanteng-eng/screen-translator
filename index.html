@@ -213,10 +213,11 @@ async function requestMyMemory(text,source,target){
  }
  return translated.join('\n');
 }
+function normalizeWorkerUrl(){let url=(el('workerUrl').value||'').trim();while(url.endsWith('/'))url=url.slice(0,-1);return url;}
 function getAISettings(){
- const url=(el('workerUrl').value||'').trim().replace(/\\/+$/,'');
+ const url=normalizeWorkerUrl();
  const token=(el('appToken').value||'').trim();
- if(!url||!/^https:\\/\\//i.test(url))throw new Error('请先填写 Cloudflare Worker 的 HTTPS 地址。详细步骤见仓库中的 CLOUDFLARE_SETUP.txt。');
+ if(!url||!url.toLowerCase().startsWith('https://'))throw new Error('请填写有效的 HTTPS Worker 地址。详细步骤见仓库中的 CLOUDFLARE_SETUP.txt。');
  if(!token)throw new Error('请填入个人访问口令 APP_ACCESS_TOKEN。');
  return {url,token};
 }
@@ -228,8 +229,8 @@ async function callAI(payload){
  return data;
 }
 el('saveBackend').addEventListener('click',()=>{
- const url=(el('workerUrl').value||'').trim().replace(/\\/+$/,'');
- if(!url||!/^https:\\/\\//i.test(url)){showBackend('请填写有效的 HTTPS Worker 地址。',true);return;}
+ const url=normalizeWorkerUrl();
+ if(!url||!url.toLowerCase().startsWith('https://'))throw new Error('请填写有效的 HTTPS Worker 地址。详细步骤见仓库中的 CLOUDFLARE_SETUP.txt。');
  localStorage.setItem('translator_worker_url',url);
  if(el('rememberToken').checked){localStorage.setItem('translator_app_token',el('appToken').value.trim());}
  else localStorage.removeItem('translator_app_token');
@@ -237,7 +238,7 @@ el('saveBackend').addEventListener('click',()=>{
 });
 function showBackend(msg,error=false){el('backendStatus').textContent=msg;el('backendStatus').style.color=error?'#b42318':'#5b6474';}
 el('testBackend').addEventListener('click',async()=>{
- const url=(el('workerUrl').value||'').trim().replace(/\\/+$/,'');
+ const url=normalizeWorkerUrl();
  if(!url){showBackend('请先填写 Worker 地址。',true);return;}
  el('testBackend').disabled=true;showBackend('正在测试 Worker……');
  try{
