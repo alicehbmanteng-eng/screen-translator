@@ -1,0 +1,11 @@
+{
+  "name": "屏幕翻译助手",
+  "short_name": "屏幕翻译",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#1769e0",
+  "description": "通过截图识别英语和阿拉伯语，并翻译成简体中文"
+}
