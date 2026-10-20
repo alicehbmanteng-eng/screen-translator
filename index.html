@@ -27,7 +27,7 @@ textarea{min-height:125px;line-height:1.55;resize:vertical}label{font-weight:650
 </head>
 <body>
 <h1>🌐 中英双向 AI 翻译助手</h1>
-<div class="sub">不用申请 API Key、不用配置服务器。上传截图让视觉 AI 直接识字和翻译，也可以输入文字进行英文 ↔ 中文互译。</div>
+<div class="sub">默认自动识别中文、英文或阿拉伯文，再选择翻译方向。也可手动指定方向；支持截图识字翻译和粘贴文字翻译。</div>
 
 <div class="card">
 <div class="row" style="align-items:center;justify-content:space-between">
@@ -178,26 +178,46 @@ async function fetchPublicJsonDirectOrProxy(url){
   }
   throw new Error('直连和备用网络通道都无法连接（可能是网络拦截或服务暂不可用）。请换 Wi-Fi/蜂窝网络再试。');
 }
+function detectSourceLanguage(inputText){
+  const han = (inputText.match(/[\\u3400-\\u4dbf\\u4e00-\\u9fff]/g) || []).length;
+  const arabic = (inputText.match(/[\\u0600-\\u06ff\\u0750-\\u077f\\u08a0-\\u08ff]/g) || []).length;
+  const latin = (inputText.match(/[A-Za-z\\u00c0-\\u024f]/g) || []).length;
+
+  // Detect by dominant writing system. This is a practical heuristic for the
+  // app's supported languages, not a universal language-identification model.
+  if(arabic >= 2 && arabic >= han && arabic >= latin * 0.45) {
+    return {code:'ar', label:'阿拉伯文', target:'zh-CN', targetLabel:'简体中文', pair:'ar|zh-CN'};
+  }
+  if(han >= 1 && han >= latin * 0.18) {
+    return {code:'zh', label:'中文', target:'en', targetLabel:'英文', pair:'zh-CN|en'};
+  }
+  if(latin >= 1) {
+    return {code:'en', label:'英文/拉丁字母文本', target:'zh-CN', targetLabel:'简体中文', pair:'en|zh-CN'};
+  }
+  return {code:'unknown', label:'无法确定', target:'zh-CN', targetLabel:'简体中文', pair:'en|zh-CN'};
+}
 async function translateTextOnline(inputText, direction){
+  const detected = detectSourceLanguage(inputText);
   let target = 'zh-CN';
   let pair = 'en|zh-CN';
+  let targetLabel = '简体中文';
+  let sourceLabel = detected.label;
+
   if(direction === 'zh-en'){
-    target = 'en';
-    pair = 'zh-CN|en';
+    target = 'en'; pair = 'zh-CN|en'; targetLabel = '英文'; sourceLabel = '中文';
   } else if(direction === 'ar-zh'){
-    target = 'zh-CN';
-    pair = 'ar|zh-CN';
-  } else if(direction === 'auto' && /[一-龥]/.test(inputText)){
-    target = 'en';
-    pair = 'zh-CN|en';
-  } else if(direction === 'auto' && /[؀-ۿ]/.test(inputText)){
-    target = 'zh-CN';
-    pair = 'ar|zh-CN';
+    target = 'zh-CN'; pair = 'ar|zh-CN'; targetLabel = '简体中文'; sourceLabel = '阿拉伯文';
+  } else if(direction === 'en-zh'){
+    target = 'zh-CN'; pair = 'en|zh-CN'; targetLabel = '简体中文'; sourceLabel = '英文';
+  } else {
+    target = detected.target;
+    pair = detected.pair;
+    targetLabel = detected.targetLabel;
   }
 
-  const chunks = inputText.match(/[\s\S]{1,1600}/g) || [];
+  const chunks = inputText.match(/[\\s\\S]{1,1600}/g) || [];
   const translated = [];
-  let detected = '';
+  let actualDetected = '';
   for(const chunk of chunks){
     let translatedChunk = '';
     try{
@@ -206,7 +226,7 @@ async function translateTextOnline(inputText, direction){
       const data = await fetchPublicJsonDirectOrProxy(url);
       if(!Array.isArray(data) || !Array.isArray(data[0])) throw new Error('Google 翻译返回格式异常');
       translatedChunk = data[0].map(part => Array.isArray(part) ? (part[0] || '') : '').join('');
-      if(data[2]) detected = String(data[2]);
+      if(data[2]) actualDetected = String(data[2]);
     }catch(primaryError){
       const params = new URLSearchParams({q:chunk,langpair:pair});
       const url = 'https://api.mymemory.translated.net/get?' + params.toString();
@@ -221,7 +241,13 @@ async function translateTextOnline(inputText, direction){
     }
     translated.push(translatedChunk);
   }
-  return {sourceText:inputText, translatedText:translated.join(' '), detectedLanguage:detected, uncertainties:[]};
+  return {
+    sourceText:inputText,
+    translatedText:translated.join(' '),
+    detectedLanguage:direction === 'auto' ? detected.label : sourceLabel,
+    targetLanguage:targetLabel,
+    uncertainties:[]
+  };
 }
 function getDataUrl(file){
   return new Promise((resolve,reject)=>{
@@ -283,11 +309,13 @@ el('aiText').addEventListener('click',async()=>{
   const btn=el('aiText');btn.disabled=true;
   setStatus('textStatus','正在翻译文字，请保持页面打开……');
   try{
-    const data=await translateTextOnline(text,el('direction').value);
+    const selectedDirection=el('direction').value;
+    const data=await translateTextOnline(text,selectedDirection);
     el('source').value=data.sourceText || text;
     el('result').value=data.translatedText;
     el('uncertainties').textContent='请核对人名、公司名、邮箱、金额、数量、尺寸和交期。';
-    setStatus('textStatus','翻译完成。请核对商务信息。');
+    const detectLine=selectedDirection==='auto' ? ('自动识别：'+data.detectedLanguage+' → '+data.targetLanguage+'。') : ('指定方向：'+data.detectedLanguage+' → '+data.targetLanguage+'。');
+    setStatus('textStatus',detectLine+' 翻译完成，请核对商务信息。');
   }catch(error){
     setStatus('textStatus','翻译失败：'+(error.message || '在线翻译服务暂不可用。')+'\n请检查网络后重试。',true);
   }finally{btn.disabled=false;}
