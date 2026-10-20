@@ -1,52 +1,15 @@
-中英双向 AI 翻译助手：免申请 Gemini API Key 的部署说明
+当前版本不再需要部署 Cloudflare Worker，也不需要创建 Gemini API Key。
 
-本方案改用 Cloudflare Workers AI 的 Gemma 4 26B A4B 多模态模型。它支持图像/文字输入、多语言 OCR、屏幕与 UI 理解；Cloudflare 官方当前列出的 Workers Free 计划每天包含 10,000 Neurons 免费额度。超过免费额度需付费计划；实际消耗取决于图像大小和输出长度。
-官方模型说明：https://developers.cloudflare.com/workers-ai/models/gemma-4-26b-a4b-it/
-官方定价：https://developers.cloudflare.com/workers-ai/platform/pricing/
+现在的前端直接调用公开的免密钥视觉 AI 服务：
+https://ahm7xmakki.com/api/imgchat
 
-重点：
-- 不需要 Google AI Studio，不需要创建 Gemini API Key。
-- 仍需要一个 Cloudflare 账户，来创建 Worker 并使用 Cloudflare Workers AI。
-- APP_ACCESS_TOKEN 只是你自己网页与 Worker 之间的访问口令，不是 AI 供应商 API Key。请保密，不要发给任何人。
-- 公开的 GitHub Pages 没有地方安全保存供应商密钥，因此模型调用必须由 Worker 处理。
-- 这是截图上传式翻译工具，不会自动读取其他 iPhone App 的画面。
-- 模型不能保证每次达到 ChatGPT/Google Lens 的准确率。姓名、公司名、价格、数字、币种、数量、网址和交期请核对原图。
+界面和调用代码已整合在 index.html。此服务是第三方公共接口，可能限流、临时不可用或变更政策；不能保证达到 Google/ChatGPT 每次的准确率。截图和文字会发送给第三方处理，请勿上传客户机密或敏感信息。
 
-部署步骤（Windows + iPhone，无需 Mac）：
+使用：
+1. 打开 https://alicehbmanteng-eng.github.io/screen-translator/?v=7
+2. 选择英文→中文或中文→英文。
+3. 上传截图点击“AI 直接识图 + 翻译”，或在文本框粘贴原文点击“AI 翻译文字”。
 
-1. 打开 https://dash.cloudflare.com/ ，注册或登录 Cloudflare。
+iPhone：使用 Safari 打开网页，点击“分享”→“添加到主屏幕”。
 
-2. 在左边找到 Workers & Pages（Workers 和 Pages），选择 Create application（创建应用）→ Create Worker（创建 Worker）。给 Worker 起名，例如 bilingual-translator，然后创建。
-
-3. 打开刚创建的 Worker，选择 Edit code（编辑代码）。打开本仓库中的 cloudflare-worker.js：
-   https://github.com/alicehbmanteng-eng/screen-translator/blob/main/cloudflare-worker.js
-   把文件内容全部复制到 Cloudflare 的代码编辑器，替换原有示例代码，然后点击 Deploy（部署）。
-
-4. 在 Worker 页面打开 Settings（设置）→ Bindings（绑定）→ Add binding（添加绑定），选择 Workers AI。变量名称填 AI，保存后重新部署。如果页面显示 AI binding（AI 绑定），变量名必须是大写 AI。
-
-5. 在 Settings（设置）→ Variables and Secrets（变量和机密）添加一个 Secret：
-   名称：APP_ACCESS_TOKEN
-   值：自己生成的一串随机口令，至少 32 个字符。
-   Windows PowerShell 可生成随机口令：
-   [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
-   把这串值复制到 Secret，然后重新 Deploy（部署）。不要把口令提交到 GitHub 或公开分享。
-
-6. 复制 Worker 的 HTTPS 地址，通常类似：
-   https://bilingual-translator.你的子域名.workers.dev
-
-7. 打开 https://alicehbmanteng-eng.github.io/screen-translator/?v=4
-   在“Cloudflare Worker 地址”中填入第 6 步的网址；在“个人访问口令”中填入刚才生成的 APP_ACCESS_TOKEN。点击“保存连接设置”，再点“测试连接”。
-
-8. 测试通过后，选“英文 → 中文”上传英文客户截图，点击“AI 直接识图 + 翻译”；再选“中文 → 英文”，粘贴一段中文测试，点击“用 AI 翻译原文”。
-
-常见故障：
-- 提示缺少 AI binding：回到 Settings → Bindings，添加 Workers AI binding，名字必须是 AI，再部署。
-- 提示访问口令错误：网页输入的口令必须和 APP_ACCESS_TOKEN Secret 完全一致。
-- 测试连接失败：检查 Worker URL 必须是 HTTPS 并以 workers.dev 结尾；保存后重新测试。
-- 429 / quota / capacity：可能达到每日免费额度或暂时没有推理容量，晚些时候再试。
-- 模型第一次调用可能需要等待；如果提示模型不可用，打开 Workers AI Playground 查看该模型是否对账户可用。
-
-隐私：
-- 不要上传护照、账号密码、验证码、银行资料、客户机密报价或其他敏感信息。
-- Cloudflare Workers AI 会处理你发送的截图/文本。使用前请阅读 Cloudflare 的相关服务条款与数据政策。
-- 为避免公开接口被他人滥用，Worker 需要 APP_ACCESS_TOKEN。不要在公共电脑勾选“记住访问口令”。
+注意：网页无法在 iPhone 上自动读取其他 App 屏幕，仍需先截图再上传。
