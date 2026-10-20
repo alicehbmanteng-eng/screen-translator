@@ -7,63 +7,75 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="./manifest.json">
-<title>屏幕翻译助手</title>
+<title>中英双向翻译助手</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#172033;background:#f3f6fb}
 *{box-sizing:border-box}body{margin:0;padding:16px;max-width:760px;margin-inline:auto}
 h1{font-size:26px;margin:8px 0}.sub{color:#5d687a;line-height:1.55}
 .card{background:#fff;border:1px solid #e0e7f0;border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 3px 12px #152a4507}
-button,.filebtn{display:block;width:100%;padding:13px 14px;margin:8px 0;border:0;border-radius:10px;background:#1769e0;color:#fff;font-size:16px;font-weight:600;cursor:pointer}
-button:disabled{opacity:.55;cursor:wait}.secondary{background:#64748b}
+button{display:block;width:100%;padding:13px 14px;margin:8px 0;border:0;border-radius:10px;background:#1769e0;color:#fff;font-size:16px;font-weight:600;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}.secondary{background:#64748b}.outline{color:#1769e0;background:#eaf2ff}
 input,select,textarea{font:inherit;width:100%;padding:12px;margin:7px 0 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff}
 textarea{min-height:130px;line-height:1.55;resize:vertical}label{font-weight:650;font-size:14px;display:block;margin-top:7px}
 #preview{display:none;width:100%;max-height:360px;object-fit:contain;margin-top:10px;border-radius:10px;background:#eef2f7}
 .status{font-size:14px;color:#5b6474;line-height:1.55;white-space:pre-wrap}
-.note{font-size:13px;color:#647084;line-height:1.6}
+.note{font-size:13px;color:#647084;line-height:1.6}.small{font-size:12px;color:#647084}
 .row{display:flex;gap:8px}.row button{flex:1}
-.ok{color:#087443}.err{color:#b42318}.small{font-size:12px;color:#647084}
-hr{border:0;border-top:1px solid #e6ebf2;margin:14px 0}
+.pill{display:inline-block;background:#eaf2ff;color:#174ea6;padding:6px 10px;border-radius:20px;font-weight:650;font-size:13px}
 </style>
 </head>
 <body>
-<h1>🌐 屏幕翻译助手</h1>
-<div class="sub">英语 / 阿拉伯语截图识别 → 简体中文翻译。新版增加图片放大增强、两种版面识别方式和翻译备用方案。</div>
+<h1>🌐 中英双向翻译助手</h1>
+<div class="sub">不仅是英文翻中文，也支持中文翻英文。识别截图后可以手动修正原文，再翻译。</div>
 
 <div class="card">
-<label for="photo">1. 选择截图</label>
+<label for="direction">1. 选择翻译方向</label>
+<select id="direction">
+<option value="en-zh">English → 简体中文（英文翻中文）</option>
+<option value="zh-en">简体中文 → English（中文翻英文）</option>
+<option value="ar-zh">العربية → 简体中文（阿拉伯文翻中文）</option>
+</select>
+<div class="row">
+<button id="swap" class="outline">⇄ 切换中英方向</button>
+</div>
+<div class="small">当前方向：<span class="pill" id="directionLabel">英文 → 中文</span></div>
+
+<hr>
+<label for="photo">2. 上传屏幕截图</label>
 <input id="photo" type="file" accept="image/*">
 <img id="preview" alt="截图预览">
-<div class="small">小建议：尽量上传原始截图，不要上传经过聊天软件压缩的图片。文字很小的话，请先在手机照片里裁剪到文字区域。</div>
+<div class="small">请尽量使用原始截图；文字特别小的话，先裁剪到需要识别的区域，通常比整张长截图更准确。</div>
 
-<label for="language">2. 截图中的语言</label>
-<select id="language">
-<option value="eng">英语 English</option>
-<option value="ara">阿拉伯语 العربية</option>
-<option value="eng+ara">英语 + 阿拉伯语混合</option>
+<label for="ocrLanguage">识别截图语言</label>
+<select id="ocrLanguage">
+<option value="eng">英语</option>
+<option value="chi_sim">简体中文</option>
+<option value="eng+chi_sim">中英文混合</option>
+<option value="ara">阿拉伯语</option>
 </select>
-<button id="recognize">增强识别截图文字</button>
-<div id="ocrStatus" class="status">等待选择截图。首次识别需要联网加载模型。</div>
+<button id="recognize">识别截图文字</button>
+<div id="ocrStatus" class="status">等待选择截图。首次识别会联网下载识别模型。</div>
 </div>
 
 <div class="card">
-<label for="source">3. 识别出的原文（可以手动修改）</label>
-<textarea id="source" placeholder="识别结果显示在这里。对公司名、邮箱、网址、价格、数量等重要信息，请对照截图检查。"></textarea>
+<label for="source">3. 原文（可编辑）</label>
+<textarea id="source" placeholder="识别出的原文会显示在这里；也可以直接粘贴英文或中文。"></textarea>
 <div class="row">
-<button id="translate">翻译成中文</button>
+<button id="translate">翻译</button>
 <button id="clear" class="secondary">清空</button>
 </div>
 <div id="translateStatus" class="status"></div>
-<label for="result">4. 中文译文</label>
-<textarea id="result" placeholder="中文译文会显示在这里"></textarea>
-<button id="copy">复制中文译文</button>
+<label for="result">4. 译文（可编辑）</label>
+<textarea id="result" placeholder="翻译结果会显示在这里"></textarea>
+<button id="copy">复制译文</button>
 </div>
 
 <div class="card note">
-<strong>本次改进</strong><br>
-• OCR 会尝试原图与放大增强图，并使用两种文字版面模式识别，选择置信度较高的结果。<br>
-• 翻译先尝试 Google 翻译网页使用的非正式接口，失败时再尝试 MyMemory 公共接口。两种公共接口均可能限流或调整，不等于付费 API 服务承诺。<br><br>
-<strong>重要限制</strong><br>
-此网页不会自动读取其他 App 的屏幕；使用步骤仍是先截图，再在这里上传。识别文字会发送给翻译服务以获得译文。请勿上传密码、验证码、财务信息或其他敏感资料。
+<strong>请了解当前版本的能力边界</strong><br>
+• 中英双向翻译已经启用；中文输入时可以翻成英文，英文输入时可以翻成中文。<br>
+• OCR 使用浏览器中的 Tesseract.js，先进行图片放大和对比度处理，再尝试两种版面识别模式。它仍可能误认小字、模糊字、品牌名和数字，不能保证达到 Google Lens 或专业 OCR 的准确率。<br>
+• 翻译会优先尝试 Google 翻译网页接口（非官方 API），失败时使用 MyMemory 公共接口。公共接口可能变化、限流或受到网络限制；这不等于正式 Google Cloud Translation 或 ChatGPT API。<br>
+• 此网页不能自动读取别的 App 的屏幕。请先在 LinkedIn、Facebook、Instagram 或浏览器里截图，再回来上传。识别结果会发送给翻译服务，请勿处理密码、验证码或敏感资料。
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -73,21 +85,38 @@ const photo=el('photo'),preview=el('preview');
 const ocrStatus=el('ocrStatus'),translateStatus=el('translateStatus');
 let activeUrl=null;
 
+const directions={
+ 'en-zh':{label:'英文 → 中文',ocr:'eng',source:'en',target:'zh-CN'},
+ 'zh-en':{label:'中文 → 英文',ocr:'chi_sim',source:'zh-CN',target:'en'},
+ 'ar-zh':{label:'阿拉伯文 → 中文',ocr:'ara',source:'ar',target:'zh-CN'}
+};
+function updateDirection(useDefaultOcr=true){
+ const d=directions[el('direction').value]||directions['en-zh'];
+ el('directionLabel').textContent=d.label;
+ if(useDefaultOcr)el('ocrLanguage').value=d.ocr;
+}
+el('direction').addEventListener('change',()=>updateDirection(true));
+el('swap').addEventListener('click',()=>{
+ const d=el('direction').value;
+ el('direction').value=d==='en-zh'?'zh-en':d==='zh-en'?'en-zh':'en-zh';
+ updateDirection(true);
+});
+updateDirection();
+
 photo.addEventListener('change',()=>{
- const f=photo.files&&photo.files[0]; if(!f)return;
+ const f=photo.files&&photo.files[0];if(!f)return;
  if(activeUrl)URL.revokeObjectURL(activeUrl);
- activeUrl=URL.createObjectURL(f); preview.src=activeUrl; preview.style.display='block';
- ocrStatus.textContent='截图已载入。点击“增强识别截图文字”。';
+ activeUrl=URL.createObjectURL(f);preview.src=activeUrl;preview.style.display='block';
+ ocrStatus.textContent='截图已载入。点击“识别截图文字”。';
 });
 
-function makeEnhancedCanvas(file){
+function prepareCanvas(file,enhance){
  return new Promise((resolve,reject)=>{
-  const img=new Image();
-  const url=URL.createObjectURL(file);
+  const img=new Image(),url=URL.createObjectURL(file);
   img.onload=()=>{
    URL.revokeObjectURL(url);
    const maxDim=Math.max(img.naturalWidth,img.naturalHeight);
-   const scale=Math.min(2.2, Math.max(1, 3000/maxDim));
+   const scale=Math.min(2.5,Math.max(1,3000/maxDim));
    const canvas=document.createElement('canvas');
    canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
    canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
@@ -95,14 +124,16 @@ function makeEnhancedCanvas(file){
    ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
    ctx.drawImage(img,0,0,canvas.width,canvas.height);
-   const im=ctx.getImageData(0,0,canvas.width,canvas.height);
-   const d=im.data;
-   for(let i=0;i<d.length;i+=4){
-    const gray=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-    const v=Math.max(0,Math.min(255,(gray-128)*1.22+128));
-    d[i]=d[i+1]=d[i+2]=v;
+   if(enhance){
+    const im=ctx.getImageData(0,0,canvas.width,canvas.height),data=im.data;
+    for(let i=0;i<data.length;i+=4){
+     const gray=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
+     const v=Math.max(0,Math.min(255,(gray-128)*1.18+128));
+     data[i]=data[i+1]=data[i+2]=v;
+    }
+    ctx.putImageData(im,0,0);
    }
-   ctx.putImageData(im,0,0);resolve(canvas);
+   resolve(canvas);
   };
   img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('图片无法读取'))};
   img.src=url;
@@ -110,85 +141,80 @@ function makeEnhancedCanvas(file){
 }
 
 el('recognize').addEventListener('click',async()=>{
- const f=photo.files&&photo.files[0];
- if(!f){ocrStatus.textContent='请先选择一张截图。';return}
- if(!window.Tesseract){ocrStatus.textContent='识别组件加载失败，请检查网络后刷新页面。';return}
- const btn=el('recognize');btn.disabled=true;
- let worker=null;
+ const file=photo.files&&photo.files[0];
+ if(!file){ocrStatus.textContent='请先选择截图。';return}
+ if(!window.Tesseract){ocrStatus.textContent='识别组件加载失败，请检查网络并刷新页面。';return}
+ const btn=el('recognize');btn.disabled=true;let worker=null;
  try{
-  const lang=el('language').value;
-  ocrStatus.textContent='正在加载文字识别模型，首次使用可能需要一点时间……';
-  worker=await Tesseract.createWorker(lang,1,{
-   logger:m=>{
-    if(m.status){
-     const pct=m.progress!=null?' '+Math.round(m.progress*100)+'%':'';
-     ocrStatus.textContent=m.status+pct;
-    }
-   }
-  });
+  const lang=el('ocrLanguage').value;
+  ocrStatus.textContent='正在加载 '+lang+' 识别模型（首次使用需要下载）……';
+  worker=await Tesseract.createWorker(lang,1,{logger:m=>{
+   if(m.status)ocrStatus.textContent=m.status+(m.progress!=null?' '+Math.round(m.progress*100)+'%':'');
+  }});
   await worker.setParameters({preserve_interword_spaces:'1',user_defined_dpi:'300',tessedit_pageseg_mode:'11'});
-  const enhanced=await makeEnhancedCanvas(f);
-  ocrStatus.textContent='正在识别截图（方法 1/2）……';
-  const first=await worker.recognize(enhanced);
-  let best=first;
+  const plain=await prepareCanvas(file,false),enhanced=await prepareCanvas(file,true);
+  ocrStatus.textContent='正在分析截图版面……';
+  const a=await worker.recognize(plain);
   await worker.setParameters({tessedit_pageseg_mode:'6'});
-  ocrStatus.textContent='正在用另一种文字排列方式复查（方法 2/2）……';
-  const second=await worker.recognize(enhanced);
-  const c1=Number(first.data.confidence)||0,c2=Number(second.data.confidence)||0;
-  if((second.data.text||'').trim().length>(first.data.text||'').trim().length && c2>=c1-5)best=second;
-  else if(c2>c1+3)best=second;
-  const text=(best.data.text||'').trim();
-  el('source').value=text;
-  if(!text)ocrStatus.textContent='没有识别到文字。请换更清晰的原始截图，或先裁剪到文字区域。';
-  else ocrStatus.textContent='识别完成（OCR 置信度约 '+Math.round(Number(best.data.confidence)||0)+'%）。请务必检查原文，尤其是姓名、邮箱、数字和价格。';
+  const b=await worker.recognize(enhanced);
+  const ta=(a.data.text||'').trim(),tb=(b.data.text||'').trim();
+  const ca=Number(a.data.confidence)||0,cb=Number(b.data.confidence)||0;
+  let best=a;
+  if((cb>ca+3)||(tb.length>ta.length*1.15&&cb>=ca-5))best=b;
+  el('source').value=(best.data.text||'').trim();
+  if(!el('source').value)ocrStatus.textContent='没有识别到文字。请用更清晰的截图，或先裁剪到文字区域。';
+  else ocrStatus.textContent='识别完成。识别置信度约 '+Math.round(Number(best.data.confidence)||0)+'%。请核对姓名、品牌名、网址、价格、数量等内容。';
  }catch(e){
-  ocrStatus.textContent='识别失败：模型可能未加载成功。请检查网络后刷新重试；如果阿拉伯语模型加载失败，可先用系统文字识别或单独截图。';
+  ocrStatus.textContent='识别失败：请检查网络，或更换更清晰的截图再试。首次加载中文识别模型可能较慢。';
  }finally{
   if(worker){try{await worker.terminate()}catch(e){}}
   btn.disabled=false;
  }
 });
 
-async function googleTranslate(text){
- const chunks=[];for(let i=0;i<text.length;i+=650)chunks.push(text.slice(i,i+650));
- const out=[];
+async function requestGoogle(text,source,target){
+ const chunks=[];for(let i=0;i<text.length;i+=550)chunks.push(text.slice(i,i+550));
+ const translated=[];
  for(const chunk of chunks){
-  const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q='+encodeURIComponent(chunk);
-  const r=await fetch(url);if(!r.ok)throw new Error('Google 翻译接口不可用');
-  const data=await r.json();
-  const translated=(data&&data[0]||[]).map(part=>part&&part[0]||'').join('');
-  if(!translated)throw new Error('没有返回译文');
-  out.push(translated);
+  const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl='+encodeURIComponent(source)+'&tl='+encodeURIComponent(target)+'&dt=t&q='+encodeURIComponent(chunk);
+  const response=await fetch(url);
+  if(!response.ok)throw new Error('第一翻译服务暂不可用');
+  const data=await response.json();
+  const out=(data&&data[0]||[]).map(part=>part&&part[0]||'').join('');
+  if(!out)throw new Error('没有返回译文');
+  translated.push(out);
  }
- return out.join('\n');
+ return translated.join('\n');
 }
-async function myMemoryTranslate(text){
- const chunks=[];for(let i=0;i<text.length;i+=450)chunks.push(text.slice(i,i+450));
- const out=[];
+async function requestMyMemory(text,source,target){
+ const chunks=[];for(let i=0;i<text.length;i+=400)chunks.push(text.slice(i,i+400));
+ const translated=[];
  for(const chunk of chunks){
-  const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(chunk)+'&langpair=autodetect|zh-CN';
-  const r=await fetch(url);if(!r.ok)throw new Error('备用翻译接口不可用');
-  const data=await r.json();
-  if(data.responseStatus!==200||!data.responseData||!data.responseData.translatedText)throw new Error('备用翻译没有返回译文');
-  out.push(data.responseData.translatedText);
+  const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(chunk)+'&langpair='+encodeURIComponent(source+'|'+target);
+  const response=await fetch(url);
+  if(!response.ok)throw new Error('备用翻译服务暂不可用');
+  const data=await response.json();
+  if(data.responseStatus!==200||!data.responseData||!data.responseData.translatedText)throw new Error('备用服务没有返回译文');
+  translated.push(data.responseData.translatedText);
  }
- return out.join('\n');
+ return translated.join('\n');
 }
 el('translate').addEventListener('click',async()=>{
  const text=el('source').value.trim();
- if(!text){translateStatus.textContent='请先识别截图或粘贴外语文字。';return}
+ if(!text){translateStatus.textContent='请先识别截图或粘贴原文。';return}
+ const d=directions[el('direction').value]||directions['en-zh'];
  const btn=el('translate');btn.disabled=true;el('result').value='';
- translateStatus.textContent='正在尝试第一翻译服务……';
+ translateStatus.textContent='正在翻译：'+d.label+'……';
  try{
-  const result=await googleTranslate(text);
-  el('result').value=result;translateStatus.textContent='翻译完成（第一服务）。请核对商务细节。';
- }catch(e1){
-  translateStatus.textContent='第一翻译服务暂不可用，正在尝试备用服务……';
+  const result=await requestGoogle(text,d.source,d.target);
+  el('result').value=result;translateStatus.textContent='翻译完成（第一服务）。请核对商务细节和专有名词。';
+ }catch(firstError){
+  translateStatus.textContent='第一翻译服务暂时不可用，正在尝试备用服务……';
   try{
-   const result=await myMemoryTranslate(text);
-   el('result').value=result;translateStatus.textContent='翻译完成（备用服务）。请核对商务细节。';
-  }catch(e2){
-   translateStatus.textContent='两个免费公共服务都无法完成翻译。请稍后再试，或复制原文用可靠的翻译工具翻译。';
+   const result=await requestMyMemory(text,d.source,d.target);
+   el('result').value=result;translateStatus.textContent='翻译完成（备用服务）。请核对商务细节和专有名词。';
+  }catch(secondError){
+   translateStatus.textContent='免费公共翻译服务暂时都不可用。请稍后重试。';
   }
  }finally{btn.disabled=false}
 });
@@ -199,9 +225,10 @@ el('copy').addEventListener('click',async()=>{
 });
 el('clear').addEventListener('click',()=>{
  photo.value='';preview.removeAttribute('src');preview.style.display='none';
- el('source').value='';el('result').value='';ocrStatus.textContent='等待选择截图。';translateStatus.textContent='';
+ el('source').value='';el('result').value='';
+ ocrStatus.textContent='等待选择截图。';translateStatus.textContent='';
 });
-if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 </body>
 </html>
