@@ -230,7 +230,7 @@ async function callAI(payload){
 }
 el('saveBackend').addEventListener('click',()=>{
  const url=normalizeWorkerUrl();
- if(!url||!url.toLowerCase().startsWith('https://'))throw new Error('请填写有效的 HTTPS Worker 地址。详细步骤见仓库中的 CLOUDFLARE_SETUP.txt。');
+ if(!url||!url.toLowerCase().startsWith('https://')){showBackend('请填写有效的 HTTPS Worker 地址。',true);return;}
  localStorage.setItem('translator_worker_url',url);
  if(el('rememberToken').checked){localStorage.setItem('translator_app_token',el('appToken').value.trim());}
  else localStorage.removeItem('translator_app_token');
