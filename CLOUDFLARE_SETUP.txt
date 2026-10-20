@@ -1,30 +1,52 @@
-中英双向 AI 翻译助手：Cloudflare Worker 配置说明
+中英双向 AI 翻译助手：免申请 Gemini API Key 的部署说明
 
-重要：
-- GitHub Pages 只托管静态网页，没有安全保存 API 密钥的后端能力。
-- 请勿把 Gemini API Key 写进 index.html 或提交到 GitHub。
-- 此 Worker 将图片直接交给 Gemini 视觉模型读取并翻译，绕开基础 Tesseract OCR，通常比“先 OCR 再机器翻译”的流程更适合客户主页/聊天截图，但不能保证每张图都百分之百正确。
-- Gemini API 免费层有模型/频率限制；免费层提交内容可能被 Google 用于改进产品。不要上传客户机密、个人敏感信息或内部报价。请先阅读 Google AI Studio / Gemini API 条款。
+本方案改用 Cloudflare Workers AI 的 Gemma 4 26B A4B 多模态模型。它支持图像/文字输入、多语言 OCR、屏幕与 UI 理解；Cloudflare 官方当前列出的 Workers Free 计划每天包含 10,000 Neurons 免费额度。超过免费额度需付费计划；实际消耗取决于图像大小和输出长度。
+官方模型说明：https://developers.cloudflare.com/workers-ai/models/gemma-4-26b-a4b-it/
+官方定价：https://developers.cloudflare.com/workers-ai/platform/pricing/
 
-配置步骤（Windows + iPhone，不需要 Mac）：
-1. 打开 https://aistudio.google.com/app/apikey ，登录 Google 账号，创建 Gemini API Key。不要把 API Key 发给任何人，也不要贴到网页输入框。
-2. 打开 https://dash.cloudflare.com/ ，注册/登录 Cloudflare。
-3. 打开 Workers & Pages（工人和页面）→ Create application（创建应用）→ Create Worker（创建 Worker），创建一个 Worker。
-4. 在 Worker 代码编辑器中，把本仓库的 cloudflare-worker.js 全文复制进去并部署：
+重点：
+- 不需要 Google AI Studio，不需要创建 Gemini API Key。
+- 仍需要一个 Cloudflare 账户，来创建 Worker 并使用 Cloudflare Workers AI。
+- APP_ACCESS_TOKEN 只是你自己网页与 Worker 之间的访问口令，不是 AI 供应商 API Key。请保密，不要发给任何人。
+- 公开的 GitHub Pages 没有地方安全保存供应商密钥，因此模型调用必须由 Worker 处理。
+- 这是截图上传式翻译工具，不会自动读取其他 iPhone App 的画面。
+- 模型不能保证每次达到 ChatGPT/Google Lens 的准确率。姓名、公司名、价格、数字、币种、数量、网址和交期请核对原图。
+
+部署步骤（Windows + iPhone，无需 Mac）：
+
+1. 打开 https://dash.cloudflare.com/ ，注册或登录 Cloudflare。
+
+2. 在左边找到 Workers & Pages（Workers 和 Pages），选择 Create application（创建应用）→ Create Worker（创建 Worker）。给 Worker 起名，例如 bilingual-translator，然后创建。
+
+3. 打开刚创建的 Worker，选择 Edit code（编辑代码）。打开本仓库中的 cloudflare-worker.js：
    https://github.com/alicehbmanteng-eng/screen-translator/blob/main/cloudflare-worker.js
-5. 在这个 Worker 的 Settings（设置）→ Variables and Secrets（变量和机密）里添加两个 Secret：
-   GEMINI_API_KEY = 第 1 步创建的 API Key
-   APP_ACCESS_TOKEN = 自己生成的一段至少 32 个随机字符的访问口令
-   然后重新 Deploy（部署）。
-   Windows PowerShell 可以运行：
-   [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
-   把输出复制作为 APP_ACCESS_TOKEN。只在 Cloudflare Secret 和你自己的翻译网页里使用，不要发给别人。
-6. 复制 Worker 的 HTTPS 地址，通常类似 https://worker-name.account-name.workers.dev。
-7. 打开 https://alicehbmanteng-eng.github.io/screen-translator/ ，将 Worker 地址粘贴到“AI 后端地址”，把 APP_ACCESS_TOKEN 粘贴到“个人访问口令”，点击“保存设置”。口令只保存在当前浏览器内存中，不写入 GitHub。
-8. 点击“AI 截图识别 + 翻译”或“AI 翻译文字”。第一次失败时先核对 Worker URL、两个 Secret 是否已部署，以及浏览器有没有填对口令。
+   把文件内容全部复制到 Cloudflare 的代码编辑器，替换原有示例代码，然后点击 Deploy（部署）。
 
-隐私和费用提示：
-- GEMINI_API_KEY 只存 Worker Secret，不公开在前端代码。
-- 免费层可能限额或变更；页面不会绕过供应商限制。需要更高隐私保障或稳定额度时，应重新检查 Google 当前付费层价格/条款。
-- Worker 仅允许来自 https://alicehbmanteng-eng.github.io 的浏览器跨域请求，并要求 APP_ACCESS_TOKEN，但这不是全面的滥用防护。不要把访问口令公开；观察用量。
-- 这是截图/文字翻译网页，不是原生 iOS 的全屏系统翻译。仍需先在目标 App 截图，再上传。
+4. 在 Worker 页面打开 Settings（设置）→ Bindings（绑定）→ Add binding（添加绑定），选择 Workers AI。变量名称填 AI，保存后重新部署。如果页面显示 AI binding（AI 绑定），变量名必须是大写 AI。
+
+5. 在 Settings（设置）→ Variables and Secrets（变量和机密）添加一个 Secret：
+   名称：APP_ACCESS_TOKEN
+   值：自己生成的一串随机口令，至少 32 个字符。
+   Windows PowerShell 可生成随机口令：
+   [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
+   把这串值复制到 Secret，然后重新 Deploy（部署）。不要把口令提交到 GitHub 或公开分享。
+
+6. 复制 Worker 的 HTTPS 地址，通常类似：
+   https://bilingual-translator.你的子域名.workers.dev
+
+7. 打开 https://alicehbmanteng-eng.github.io/screen-translator/?v=4
+   在“Cloudflare Worker 地址”中填入第 6 步的网址；在“个人访问口令”中填入刚才生成的 APP_ACCESS_TOKEN。点击“保存连接设置”，再点“测试连接”。
+
+8. 测试通过后，选“英文 → 中文”上传英文客户截图，点击“AI 直接识图 + 翻译”；再选“中文 → 英文”，粘贴一段中文测试，点击“用 AI 翻译原文”。
+
+常见故障：
+- 提示缺少 AI binding：回到 Settings → Bindings，添加 Workers AI binding，名字必须是 AI，再部署。
+- 提示访问口令错误：网页输入的口令必须和 APP_ACCESS_TOKEN Secret 完全一致。
+- 测试连接失败：检查 Worker URL 必须是 HTTPS 并以 workers.dev 结尾；保存后重新测试。
+- 429 / quota / capacity：可能达到每日免费额度或暂时没有推理容量，晚些时候再试。
+- 模型第一次调用可能需要等待；如果提示模型不可用，打开 Workers AI Playground 查看该模型是否对账户可用。
+
+隐私：
+- 不要上传护照、账号密码、验证码、银行资料、客户机密报价或其他敏感信息。
+- Cloudflare Workers AI 会处理你发送的截图/文本。使用前请阅读 Cloudflare 的相关服务条款与数据政策。
+- 为避免公开接口被他人滥用，Worker 需要 APP_ACCESS_TOKEN。不要在公共电脑勾选“记住访问口令”。
