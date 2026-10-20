@@ -1,11 +1,11 @@
 {
-  "name": "中英双向 AI 翻译助手",
-  "short_name": "中英AI翻译",
+  "name": "申浩康专用翻译助手",
+  "short_name": "申浩康翻译",
   "lang": "zh-CN",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f7fb",
   "theme_color": "#1769e0",
-  "description": "使用 AI 视觉模型识别截图，并进行中英双向翻译"
+  "description": "申浩康专用中英阿自动识别、截图识别和文字翻译助手"
 }
