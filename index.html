@@ -7,292 +7,293 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="./manifest.json">
-<title>中英双向翻译助手</title>
+<title>中英双向 AI 翻译助手</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#172033;background:#f3f6fb}
-*{box-sizing:border-box}body{margin:0;padding:16px;max-width:760px;margin-inline:auto}
-h1{font-size:26px;margin:8px 0}.sub{color:#5d687a;line-height:1.55}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;max-width:760px;margin-inline:auto}
+h1{font-size:25px;margin:8px 0}
+.sub{color:#5d687a;line-height:1.55}
 .card{background:#fff;border:1px solid #e0e7f0;border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 3px 12px #152a4507}
-button{display:block;width:100%;padding:13px 14px;margin:8px 0;border:0;border-radius:10px;background:#1769e0;color:#fff;font-size:16px;font-weight:600;cursor:pointer}
-button:disabled{opacity:.55;cursor:wait}.secondary{background:#64748b}.outline{color:#1769e0;background:#eaf2ff}
+button{display:block;width:100%;padding:13px 14px;margin:8px 0;border:0;border-radius:10px;background:#1769e0;color:#fff;font-size:16px;font-weight:650;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+.secondary{background:#64748b}.outline{color:#1769e0;background:#eaf2ff}
 input,select,textarea{font:inherit;width:100%;padding:12px;margin:7px 0 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff}
-textarea{min-height:130px;line-height:1.55;resize:vertical}label{font-weight:650;font-size:14px;display:block;margin-top:7px}
+textarea{min-height:125px;line-height:1.55;resize:vertical}
+label{font-weight:650;font-size:14px;display:block;margin-top:7px}
 #preview{display:none;width:100%;max-height:360px;object-fit:contain;margin-top:10px;border-radius:10px;background:#eef2f7}
 .status{font-size:14px;color:#5b6474;line-height:1.55;white-space:pre-wrap}
-.note{font-size:13px;color:#647084;line-height:1.6}.small{font-size:12px;color:#647084}
+.note{font-size:13px;color:#647084;line-height:1.6}
+.small{font-size:12px;color:#647084}
 .row{display:flex;gap:8px}.row button{flex:1}
-.pill{display:inline-block;background:#eaf2ff;color:#174ea6;padding:6px 10px;border-radius:20px;font-weight:650;font-size:13px}
+.tokenrow{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400!important}
+.tokenrow input{width:18px;margin:0}
+hr{border:0;border-top:1px solid #e6ebf2;margin:14px 0}
 </style>
 </head>
 <body>
-<h1>🌐 中英双向翻译助手</h1>
-<div class="sub">中英双向翻译。优先使用多模态 AI 直接读取截图和翻译，减少低质量 OCR。第一次需要连接一次免费的 AI 后端。</div>
+<h1>🌐 中英双向 AI 翻译助手</h1>
+<div class="sub">截图由视觉 AI 直接识别和翻译；文本支持英文→中文、中文→英文。这个版本不再依赖浏览器里的基础 OCR 作为主要识图方式。</div>
+
 <div class="card">
-<strong>AI 后端连接（首次需要设置）</strong>
+<strong>一、连接 AI 服务（首次设置）</strong>
 <label for="workerUrl">Cloudflare Worker 地址</label>
-<input id="workerUrl" type="url" placeholder="https://你的-worker.workers.dev">
+<input id="workerUrl" type="url" placeholder="https://你的-worker.workers.dev" autocomplete="url">
 <label for="appToken">个人访问口令（APP_ACCESS_TOKEN）</label>
-<input id="appToken" type="password" placeholder="粘贴你设置在 Cloudflare Secret 中的口令">
-<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400"><input id="rememberToken" type="checkbox" style="width:auto;margin:0">只在这台私人设备记住访问口令</label>
+<input id="appToken" type="password" placeholder="粘贴部署时设置的访问口令" autocomplete="current-password">
+<label class="tokenrow"><input id="rememberToken" type="checkbox">只在这台私人设备记住口令</label>
 <div class="row">
-<button id="saveBackend">保存连接设置</button>
+<button id="saveBackend">保存设置</button>
 <button id="testBackend" class="outline">测试连接</button>
 </div>
-<div id="backendStatus" class="status">后端尚未连接。下面有配置说明；Gemini API Key 必须保存在服务器 Secret，不能放进公开网页。</div>
+<div id="backendStatus" class="status">不需要 Gemini API Key。请先在 Cloudflare Worker 中添加 Workers AI 绑定（变量名 AI）并设置 APP_ACCESS_TOKEN。完整步骤见下方部署说明。</div>
 </div>
-
 
 <div class="card">
-<label for="direction">1. 选择翻译方向</label>
+<label for="direction">二、翻译方向</label>
 <select id="direction">
-<option value="en-zh">English → 简体中文（英文翻中文）</option>
-<option value="zh-en">简体中文 → English（中文翻英文）</option>
-<option value="ar-zh">العربية → 简体中文（阿拉伯文翻中文）</option>
+<option value="en-zh">英文 → 中文</option>
+<option value="zh-en">中文 → 英文</option>
+<option value="auto">自动判断中英方向</option>
+<option value="ar-zh">阿拉伯文 → 中文</option>
 </select>
-<div class="row">
-<button id="swap" class="outline">⇄ 切换中英方向</button>
-</div>
-<div class="small">当前方向：<span class="pill" id="directionLabel">英文 → 中文</span></div>
+<div class="row"><button id="swap" class="outline">⇄ 切换中英方向</button></div>
 
 <hr>
-<label for="photo">2. 上传屏幕截图</label>
-<input id="photo" type="file" accept="image/*">
+<label for="photo">三、上传要翻译的截图</label>
+<input id="photo" type="file" accept="image/png,image/jpeg,image/webp">
 <img id="preview" alt="截图预览">
-<div class="small">请尽量使用原始截图；文字特别小的话，先裁剪到需要识别的区域，通常比整张长截图更准确。</div>
-
-<label for="ocrLanguage">识别截图语言</label>
-<select id="ocrLanguage">
-<option value="eng">英语</option>
-<option value="chi_sim">简体中文</option>
-<option value="eng+chi_sim">中英文混合</option>
-<option value="ara">阿拉伯语</option>
-</select>
-<button id="aiImage">AI 直接识图 + 翻译（推荐）</button>\n<div id="aiImageStatus" class="status">连接 AI 后端后，可让模型直接读图并返回原文、译文和不确定内容。</div>\n<button id="recognize" class="secondary">备用：基础 OCR 识别（准确率较低）</button>
-<div id="ocrStatus" class="status">等待选择截图。首次识别会联网下载识别模型。</div>
+<div class="small">请先在 LinkedIn、Facebook、Instagram 或其他 App 中截图，再在这里上传。文字很小时，建议先裁剪到需要的内容。单张图片最多 5 MB。</div>
+<button id="aiImage">AI 直接识图 + 翻译</button>
+<div id="imageStatus" class="status">AI 会从截图中提取可见文字，填入“原文”和“译文”区域。</div>
 </div>
 
 <div class="card">
-<label for="source">3. 原文（可编辑）</label>
-<textarea id="source" placeholder="识别出的原文会显示在这里；也可以直接粘贴英文或中文。"></textarea>
-<div class="row">
-<button id="translate">翻译</button>
-<button id="clear" class="secondary">清空</button>
-</div>
-<div id="translateStatus" class="status"></div>
-<label for="result">4. 译文（可编辑）</label>
+<label for="source">四、原文（可以修改或直接粘贴）</label>
+<textarea id="source" placeholder="粘贴英文、中文或阿拉伯文；也可由截图识别结果自动填入。"></textarea>
+<button id="aiText">用 AI 翻译原文</button>
+<div id="textStatus" class="status"></div>
+<label for="result">五、译文</label>
 <textarea id="result" placeholder="翻译结果会显示在这里"></textarea>
 <button id="copy">复制译文</button>
+<label for="uncertainties">需要核对的内容</label>
+<div id="uncertainties" class="status">请特别检查客户姓名、公司名称、邮箱、网址、金额、数量、币种和交期。</div>
+<button id="clear" class="secondary">清空</button>
 </div>
 
 <div class="card note">
-<strong>请了解当前版本的能力边界</strong><br>
-• 中英双向翻译已经启用；中文输入时可以翻成英文，英文输入时可以翻成中文。<br>
-• OCR 使用浏览器中的 Tesseract.js，先进行图片放大和对比度处理，再尝试两种版面识别模式。它仍可能误认小字、模糊字、品牌名和数字，不能保证达到 Google Lens 或专业 OCR 的准确率。<br>
-• 翻译会优先尝试 Google 翻译网页接口（非官方 API），失败时使用 MyMemory 公共接口。公共接口可能变化、限流或受到网络限制；这不等于正式 Google Cloud Translation 或 ChatGPT API。<br>
-• 此网页不能自动读取别的 App 的屏幕。请先在 LinkedIn、Facebook、Instagram 或浏览器里截图，再回来上传。识别结果会发送给翻译服务，请勿处理密码、验证码或敏感资料。
+<strong>如何接通 AI（无需 Gemini API Key）</strong><br>
+1. 打开下方的 Cloudflare 控制台链接，创建一个 Worker。<br>
+2. 把仓库里的 <code>cloudflare-worker.js</code> 复制到 Worker 代码编辑器并部署。<br>
+3. 在 Worker 的设置里添加 Workers AI 绑定，变量名填写 <code>AI</code>。<br>
+4. 在“变量和机密”里添加 Secret：<code>APP_ACCESS_TOKEN</code>。用 Windows PowerShell 生成一个随机口令，部署后在本网页填入同一个口令。<br><br>
+<strong>说明</strong><br>
+这个方案使用 Cloudflare Workers AI 的 Gemma 4 视觉模型。免费层有每日用量上限，性能和准确度需要用你的实际截图测试，不能承诺每次都达到 ChatGPT 或 Google Lens 的水平。网页不能自动读取其他 App 的屏幕，仍需先截图再上传。不要上传客户机密、密码或验证码。
+<br><br>
+<a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">打开 Cloudflare 控制台</a> ·
+<a href="https://github.com/alicehbmanteng-eng/screen-translator/blob/main/CLOUDFLARE_SETUP.txt" target="_blank" rel="noopener">查看中文部署说明</a>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-const el=id=>document.getElementById(id);
-const photo=el('photo'),preview=el('preview');
-const ocrStatus=el('ocrStatus'),translateStatus=el('translateStatus');
-let activeUrl=null;
-
-const directions={
- 'en-zh':{label:'英文 → 中文',ocr:'eng',source:'en',target:'zh-CN'},
- 'zh-en':{label:'中文 → 英文',ocr:'chi_sim',source:'zh-CN',target:'en'},
- 'ar-zh':{label:'阿拉伯文 → 中文',ocr:'ara',source:'ar',target:'zh-CN'}
-};
-function updateDirection(useDefaultOcr=true){
- const d=directions[el('direction').value]||directions['en-zh'];
- el('directionLabel').textContent=d.label;
- if(useDefaultOcr)el('ocrLanguage').value=d.ocr;
+const el = id => document.getElementById(id);
+let previewUrl = null;
+function normalizeWorkerUrl(){
+  let url = (el('workerUrl').value || '').trim();
+  while (url.endsWith('/')) url = url.slice(0, -1);
+  return url;
 }
-el('direction').addEventListener('change',()=>updateDirection(true));
-el('swap').addEventListener('click',()=>{
- const d=el('direction').value;
- el('direction').value=d==='en-zh'?'zh-en':d==='zh-en'?'en-zh':'en-zh';
- updateDirection(true);
-});
-updateDirection();
+function setStatus(id, message, isError=false){
+  const node = el(id);
+  node.textContent = message;
+  node.style.color = isError ? '#b42318' : '#5b6474';
+}
+function currentConfig(){
+  const url = normalizeWorkerUrl();
+  const token = (el('appToken').value || '').trim();
+  if (!url || !url.toLowerCase().startsWith('https://')) {
+    throw new Error('请填写有效的 HTTPS Worker 地址。');
+  }
+  if (!token) throw new Error('请填写个人访问口令 APP_ACCESS_TOKEN。');
+  return {url, token};
+}
+function saveSettings(){
+  const url = normalizeWorkerUrl();
+  if (!url || !url.toLowerCase().startsWith('https://')) {
+    setStatus('backendStatus', '请填写有效的 HTTPS Worker 地址。', true);
+    return;
+  }
+  localStorage.setItem('translator_worker_url', url);
+  if (el('rememberToken').checked) {
+    localStorage.setItem('translator_app_token', (el('appToken').value || '').trim());
+  } else {
+    localStorage.removeItem('translator_app_token');
+  }
+  setStatus('backendStatus', '设置已保存。AI 供应商密钥不会放在公开网页中；此处口令只用于保护你的 Worker。');
+}
+el('saveBackend').addEventListener('click', saveSettings);
 
-photo.addEventListener('change',()=>{
- const f=photo.files&&photo.files[0];if(!f)return;
- if(activeUrl)URL.revokeObjectURL(activeUrl);
- activeUrl=URL.createObjectURL(f);preview.src=activeUrl;preview.style.display='block';
- ocrStatus.textContent='截图已载入。点击“识别截图文字”。';
-});
-
-function prepareCanvas(file,enhance){
- return new Promise((resolve,reject)=>{
-  const img=new Image(),url=URL.createObjectURL(file);
-  img.onload=()=>{
-   URL.revokeObjectURL(url);
-   const maxDim=Math.max(img.naturalWidth,img.naturalHeight);
-   const scale=Math.min(2.5,Math.max(1,3000/maxDim));
-   const canvas=document.createElement('canvas');
-   canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
-   canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
-   const ctx=canvas.getContext('2d',{willReadFrequently:true});
-   ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
-   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-   ctx.drawImage(img,0,0,canvas.width,canvas.height);
-   if(enhance){
-    const im=ctx.getImageData(0,0,canvas.width,canvas.height),data=im.data;
-    for(let i=0;i<data.length;i+=4){
-     const gray=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
-     const v=Math.max(0,Math.min(255,(gray-128)*1.18+128));
-     data[i]=data[i+1]=data[i+2]=v;
+el('testBackend').addEventListener('click', async () => {
+  const url = normalizeWorkerUrl();
+  if (!url || !url.toLowerCase().startsWith('https://')) {
+    setStatus('backendStatus', '请先填写有效的 HTTPS Worker 地址。', true);
+    return;
+  }
+  const button = el('testBackend');
+  button.disabled = true;
+  setStatus('backendStatus', '正在测试 Worker……');
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || ('HTTP ' + response.status));
+    if (data.needsWorkersAIBinding) {
+      setStatus('backendStatus', 'Worker 地址正确，但缺少 Workers AI 绑定。进入 Worker 设置 → 绑定，添加 Workers AI，变量名称填写 AI，再重新部署。', true);
+    } else {
+      setStatus('backendStatus', 'Worker 已连通。模型：' + (data.model || 'Workers AI') + '。这是连通性测试；真正翻译时还会验证访问口令。');
     }
-    ctx.putImageData(im,0,0);
-   }
-   resolve(canvas);
-  };
-  img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('图片无法读取'))};
-  img.src=url;
- });
-}
-
-el('recognize').addEventListener('click',async()=>{
- const file=photo.files&&photo.files[0];
- if(!file){ocrStatus.textContent='请先选择截图。';return}
- if(!window.Tesseract){ocrStatus.textContent='识别组件加载失败，请检查网络并刷新页面。';return}
- const btn=el('recognize');btn.disabled=true;let worker=null;
- try{
-  const lang=el('ocrLanguage').value;
-  ocrStatus.textContent='正在加载 '+lang+' 识别模型（首次使用需要下载）……';
-  worker=await Tesseract.createWorker(lang,1,{logger:m=>{
-   if(m.status)ocrStatus.textContent=m.status+(m.progress!=null?' '+Math.round(m.progress*100)+'%':'');
-  }});
-  await worker.setParameters({preserve_interword_spaces:'1',user_defined_dpi:'300',tessedit_pageseg_mode:'11'});
-  const plain=await prepareCanvas(file,false),enhanced=await prepareCanvas(file,true);
-  ocrStatus.textContent='正在分析截图版面……';
-  const a=await worker.recognize(plain);
-  await worker.setParameters({tessedit_pageseg_mode:'6'});
-  const b=await worker.recognize(enhanced);
-  const ta=(a.data.text||'').trim(),tb=(b.data.text||'').trim();
-  const ca=Number(a.data.confidence)||0,cb=Number(b.data.confidence)||0;
-  let best=a;
-  if((cb>ca+3)||(tb.length>ta.length*1.15&&cb>=ca-5))best=b;
-  el('source').value=(best.data.text||'').trim();
-  if(!el('source').value)ocrStatus.textContent='没有识别到文字。请用更清晰的截图，或先裁剪到文字区域。';
-  else ocrStatus.textContent='识别完成。识别置信度约 '+Math.round(Number(best.data.confidence)||0)+'%。请核对姓名、品牌名、网址、价格、数量等内容。';
- }catch(e){
-  ocrStatus.textContent='识别失败：请检查网络，或更换更清晰的截图再试。首次加载中文识别模型可能较慢。';
- }finally{
-  if(worker){try{await worker.terminate()}catch(e){}}
-  btn.disabled=false;
- }
+  } catch (error) {
+    setStatus('backendStatus', '连接失败：' + (error.message || error) + '。请核对 Worker 地址及部署状态。', true);
+  } finally {
+    button.disabled = false;
+  }
 });
 
-async function requestGoogle(text,source,target){
- const chunks=[];for(let i=0;i<text.length;i+=550)chunks.push(text.slice(i,i+550));
- const translated=[];
- for(const chunk of chunks){
-  const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl='+encodeURIComponent(source)+'&tl='+encodeURIComponent(target)+'&dt=t&q='+encodeURIComponent(chunk);
-  const response=await fetch(url);
-  if(!response.ok)throw new Error('第一翻译服务暂不可用');
-  const data=await response.json();
-  const out=(data&&data[0]||[]).map(part=>part&&part[0]||'').join('');
-  if(!out)throw new Error('没有返回译文');
-  translated.push(out);
- }
- return translated.join('\n');
-}
-async function requestMyMemory(text,source,target){
- const chunks=[];for(let i=0;i<text.length;i+=400)chunks.push(text.slice(i,i+400));
- const translated=[];
- for(const chunk of chunks){
-  const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(chunk)+'&langpair='+encodeURIComponent(source+'|'+target);
-  const response=await fetch(url);
-  if(!response.ok)throw new Error('备用翻译服务暂不可用');
-  const data=await response.json();
-  if(data.responseStatus!==200||!data.responseData||!data.responseData.translatedText)throw new Error('备用服务没有返回译文');
-  translated.push(data.responseData.translatedText);
- }
- return translated.join('\n');
-}
-function normalizeWorkerUrl(){let url=(el('workerUrl').value||'').trim();while(url.endsWith('/'))url=url.slice(0,-1);return url;}
-function getAISettings(){
- const url=normalizeWorkerUrl();
- const token=(el('appToken').value||'').trim();
- if(!url||!url.toLowerCase().startsWith('https://'))throw new Error('请填写有效的 HTTPS Worker 地址。详细步骤见仓库中的 CLOUDFLARE_SETUP.txt。');
- if(!token)throw new Error('请填入个人访问口令 APP_ACCESS_TOKEN。');
- return {url,token};
-}
-async function callAI(payload){
- const cfg=getAISettings();
- const response=await fetch(cfg.url,{method:payload.mode==='health'?'GET':'POST',headers:payload.mode==='health'?{}:{'Content-Type':'application/json','X-App-Token':cfg.token},body:payload.mode==='health'?undefined:JSON.stringify(payload)});
- let data={};try{data=await response.json()}catch(e){}
- if(!response.ok)throw new Error(data.error||('后端请求失败：HTTP '+response.status));
- return data;
-}
-el('saveBackend').addEventListener('click',()=>{
- const url=normalizeWorkerUrl();
- if(!url||!url.toLowerCase().startsWith('https://')){showBackend('请填写有效的 HTTPS Worker 地址。',true);return;}
- localStorage.setItem('translator_worker_url',url);
- if(el('rememberToken').checked){localStorage.setItem('translator_app_token',el('appToken').value.trim());}
- else localStorage.removeItem('translator_app_token');
- showBackend('连接地址已保存。API Key 不在网页里；它应当只保存在 Cloudflare Worker 的 Secret 中。');
+el('direction').addEventListener('change', () => {
+  const direction = el('direction').value;
+  el('swap').textContent = direction === 'zh-en' ? '⇄ 切换为英文 → 中文' : '⇄ 切换中英方向';
 });
-function showBackend(msg,error=false){el('backendStatus').textContent=msg;el('backendStatus').style.color=error?'#b42318':'#5b6474';}
-el('testBackend').addEventListener('click',async()=>{
- const url=normalizeWorkerUrl();
- if(!url){showBackend('请先填写 Worker 地址。',true);return;}
- el('testBackend').disabled=true;showBackend('正在测试 Worker……');
- try{
-  const response=await fetch(url);const data=await response.json();
-  if(response.ok&&data.ok)showBackend('连接正常。当前模型：'+(data.model||'Gemini')+'。接下来可以试截图或文字翻译。');
-  else throw new Error(data.error||'Worker 尚未准备好。');
- }catch(e){showBackend('连接失败：'+(e.message||e)+'。核对 Worker 地址、部署状态和网络。',true);}
- finally{el('testBackend').disabled=false;}
-});
-function imageBase64(file){
- return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const str=String(reader.result||'');resolve(str.slice(str.indexOf(',')+1));};reader.onerror=()=>reject(new Error('读取图片失败。'));reader.readAsDataURL(file);});
-}
-el('aiImage').addEventListener('click',async()=>{
- const file=photo.files&&photo.files[0];
- if(!file){showAIImage('请先选择一张截图。',true);return;}
- if(file.size>5*1024*1024){showAIImage('截图超过 5 MB，请先裁剪图片再上传。',true);return;}
- const btn=el('aiImage');btn.disabled=true;showAIImage('正在让视觉 AI 读取截图并做双向翻译，请稍候……');
- try{
-  const data=await callAI({mode:'image',direction:el('direction').value,imageBase64:await imageBase64(file),mimeType:file.type||'image/jpeg'});
-  el('source').value=data.sourceText||'';el('result').value=data.translatedText||'';
-  el('aiNotes').textContent=(data.detectedLanguage?'检测语言：'+data.detectedLanguage+'\n':'')+((data.uncertainties||[]).length?'需要核对：\n• '+data.uncertainties.join('\n• '):'AI 未列出特别不确定之处，但仍请核对姓名、公司名、价格、币种、数量和网址。');
-  showAIImage('识图与翻译完成，使用模型：'+(data.model||'Gemini')+'。请核对原图中的商业信息。');
- }catch(e){showAIImage(e.message||'识图翻译失败。请检查后端配置。',true);}
- finally{btn.disabled=false;}
-});
-function showAIImage(msg,error=false){el('aiImageStatus').textContent=msg;el('aiImageStatus').style.color=error?'#b42318':'#5b6474';}
-el('translate').addEventListener('click',async()=>{
- const text=el('source').value.trim();
- if(!text){translateStatus.textContent='请先粘贴或识别原文。';return;}
- const btn=el('translate');btn.disabled=true;translateStatus.textContent='AI 正在翻译……';
- try{
-  const data=await callAI({mode:'text',direction:el('direction').value,text});
-  el('source').value=data.sourceText||text;el('result').value=data.translatedText||'';
-  el('aiNotes').textContent=(data.detectedLanguage?'检测语言：'+data.detectedLanguage+'\n':'')+((data.uncertainties||[]).length?'需要核对：\n• '+data.uncertainties.join('\n• '):'AI 未列出特别不确定之处；商务重要信息仍建议核对。');
-  translateStatus.textContent='AI 翻译完成，使用模型：'+(data.model||'Gemini')+'。';
- }catch(e){translateStatus.textContent=e.message||'AI 翻译失败。请检查后端配置。';}
- finally{btn.disabled=false;}
-});
-el('copy').addEventListener('click',async()=>{
- const box=el('result');if(!box.value){translateStatus.textContent='目前没有译文。';return}
- try{await navigator.clipboard.writeText(box.value);translateStatus.textContent='译文已复制。'}
- catch(e){box.focus();box.select();translateStatus.textContent='请长按选中的译文并选择复制。'}
-});
-el('clear').addEventListener('click',()=>{
- photo.value='';preview.removeAttribute('src');preview.style.display='none';
- el('source').value='';el('result').value='';
- ocrStatus.textContent='等待选择截图。';translateStatus.textContent='';
+el('swap').addEventListener('click', () => {
+  el('direction').value = el('direction').value === 'zh-en' ? 'en-zh' : 'zh-en';
+  el('swap').textContent = el('direction').value === 'zh-en' ? '⇄ 切换为英文 → 中文' : '⇄ 切换中英方向';
 });
 
-const savedWorkerUrl=localStorage.getItem('translator_worker_url');
-if(savedWorkerUrl)el('workerUrl').value=savedWorkerUrl;
-if(localStorage.getItem('translator_app_token')){el('appToken').value=localStorage.getItem('translator_app_token');el('rememberToken').checked=true;}
+el('photo').addEventListener('change', () => {
+  const file = el('photo').files && el('photo').files[0];
+  if (!file) return;
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = URL.createObjectURL(file);
+  el('preview').src = previewUrl;
+  el('preview').style.display = 'block';
+  setStatus('imageStatus', '截图已载入。点击“AI 直接识图 + 翻译”。');
+});
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const data = String(reader.result || '');
+      const comma = data.indexOf(',');
+      resolve(comma >= 0 ? data.slice(comma + 1) : data);
+    };
+    reader.onerror = () => reject(new Error('读取图片失败。'));
+    reader.readAsDataURL(file);
+  });
+}
+async function postAI(payload){
+  const config = currentConfig();
+  const response = await fetch(config.url, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'X-App-Token':config.token},
+    body: JSON.stringify(payload)
+  });
+  let data = {};
+  try { data = await response.json(); } catch (e) {}
+  if (!response.ok) throw new Error(data.error || ('AI 服务返回 HTTP ' + response.status));
+  if (!data.translatedText) throw new Error('AI 没有返回译文，请重试。');
+  return data;
+}
 
-if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
+el('aiImage').addEventListener('click', async () => {
+  const file = el('photo').files && el('photo').files[0];
+  if (!file) { setStatus('imageStatus', '请先选择截图。', true); return; }
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    setStatus('imageStatus', '请使用 PNG、JPG 或 WebP 图片。iPhone 屏幕截图通常可以直接上传。', true);
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    setStatus('imageStatus', '图片超过 5 MB，请先裁剪截图再上传。', true);
+    return;
+  }
+  const button = el('aiImage');
+  button.disabled = true;
+  setStatus('imageStatus', 'AI 正在直接读取截图并翻译，请勿关闭页面……');
+  try {
+    const data = await postAI({
+      mode: 'image',
+      direction: el('direction').value,
+      imageBase64: await fileToBase64(file),
+      mimeType: file.type,
+      text: ''
+    });
+    el('source').value = data.sourceText || '';
+    el('result').value = data.translatedText || '';
+    const warnings = Array.isArray(data.uncertainties) ? data.uncertainties : [];
+    const notes = [];
+    if (data.detectedLanguage) notes.push('识别语言：' + data.detectedLanguage);
+    if (warnings.length) notes.push('建议核对：\n• ' + warnings.join('\n• '));
+    else notes.push('仍请核对人名、公司名、网址、价格、币种、数量和交期。');
+    el('uncertainties').textContent = notes.join('\n');
+    setStatus('imageStatus', '完成。模型：' + (data.model || 'Workers AI Gemma 4') + '。请检查原文和译文，特别是商务数据。');
+  } catch (error) {
+    setStatus('imageStatus', error.message || '识图翻译失败。请检查 Worker 配置和网络。', true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+el('aiText').addEventListener('click', async () => {
+  const text = el('source').value.trim();
+  if (!text) { setStatus('textStatus', '请先粘贴或输入原文。', true); return; }
+  const button = el('aiText');
+  button.disabled = true;
+  setStatus('textStatus', 'AI 正在翻译文字……');
+  try {
+    const data = await postAI({mode:'text', direction:el('direction').value, text});
+    el('source').value = data.sourceText || text;
+    el('result').value = data.translatedText || '';
+    const warnings = Array.isArray(data.uncertainties) ? data.uncertainties : [];
+    const notes = [];
+    if (data.detectedLanguage) notes.push('识别语言：' + data.detectedLanguage);
+    if (warnings.length) notes.push('建议核对：\n• ' + warnings.join('\n• '));
+    else notes.push('商务重要信息仍建议核对原文。');
+    el('uncertainties').textContent = notes.join('\n');
+    setStatus('textStatus', '翻译完成。模型：' + (data.model || 'Workers AI Gemma 4') + '。');
+  } catch (error) {
+    setStatus('textStatus', error.message || '翻译失败，请检查 Worker 配置。', true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+el('copy').addEventListener('click', async () => {
+  const text = el('result').value;
+  if (!text) { setStatus('textStatus', '目前没有译文。', true); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus('textStatus', '译文已复制。');
+  } catch (error) {
+    el('result').focus();
+    el('result').select();
+    setStatus('textStatus', '请长按选中的译文并选择复制。');
+  }
+});
+el('clear').addEventListener('click', () => {
+  el('photo').value = '';
+  el('preview').removeAttribute('src');
+  el('preview').style.display = 'none';
+  el('source').value = '';
+  el('result').value = '';
+  el('uncertainties').textContent = '请特别检查客户姓名、公司名称、邮箱、网址、金额、数量、币种和交期。';
+  setStatus('imageStatus', '等待选择截图。');
+  setStatus('textStatus', '');
+});
+const savedUrl = localStorage.getItem('translator_worker_url');
+if (savedUrl) el('workerUrl').value = savedUrl;
+if (localStorage.getItem('translator_app_token')) {
+  el('appToken').value = localStorage.getItem('translator_app_token');
+  el('rememberToken').checked = true;
+}
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
