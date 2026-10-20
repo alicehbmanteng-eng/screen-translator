@@ -1,7 +1,7 @@
-# 中英双向 AI 翻译助手
+# 申浩康专用翻译助手
 
 打开网址：
-https://alicehbmanteng-eng.github.io/screen-translator/?v=7
+https://alicehbmanteng-eng.github.io/screen-translator/?v=12
 
 ## 当前使用方式
 - 不需要申请 API Key，不需要配置 Cloudflare Worker。
