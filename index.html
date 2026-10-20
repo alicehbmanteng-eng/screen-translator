@@ -46,7 +46,8 @@ hr{border:0;border-top:1px solid #e6ebf2;margin:14px 0}
 <button id="saveBackend">保存设置</button>
 <button id="testBackend" class="outline">测试连接</button>
 </div>
-<div id="backendStatus" class="status">不需要 Gemini API Key。请先在 Cloudflare Worker 中添加 Workers AI 绑定（变量名 AI）并设置 APP_ACCESS_TOKEN。完整步骤见下方部署说明。</div>
+<div id="backendStatus" class="status">无需申请 Gemini API Key。完整 AI 识图功能需要部署一次免费 Worker。若暂时不想配置，可以直接打开 Cloudflare 的公开模型试用页测试视觉识别和中英翻译。</div>
+<button id="openPlayground" class="secondary" type="button">不配置服务器，直接试用 AI 模型</button>
 </div>
 
 <div class="card">
@@ -131,6 +132,9 @@ function saveSettings(){
   setStatus('backendStatus', '设置已保存。AI 供应商密钥不会放在公开网页中；此处口令只用于保护你的 Worker。');
 }
 el('saveBackend').addEventListener('click', saveSettings);
+el('openPlayground').addEventListener('click', () => {
+  window.open('https://playground.ai.cloudflare.com/?model=%40cf%2Fgoogle%2Fgemma-4-26b-a4b-it', '_blank', 'noopener');
+});
 
 el('testBackend').addEventListener('click', async () => {
   const url = normalizeWorkerUrl();
