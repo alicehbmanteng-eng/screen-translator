@@ -47,7 +47,9 @@ hr{border:0;border-top:1px solid #e6ebf2;margin:14px 0}
 <button id="testBackend" class="outline">测试连接</button>
 </div>
 <div id="backendStatus" class="status">无需申请 Gemini API Key。完整 AI 识图功能需要部署一次免费 Worker。若暂时不想配置，可以直接打开 Cloudflare 的公开模型试用页测试视觉识别和中英翻译。</div>
-<button id="openPlayground" class="secondary" type="button">不配置服务器，直接试用 AI 模型</button>
+<button id="openPlayground" class="secondary" type="button">一键打开免费 AI 试用页并复制翻译指令</button>
+<div id="playgroundStatus" class="status">如果服务器暂未连接，可在公开模型试用页直接测试。该入口不会把截图发送到本网站。</div>
+<textarea id="playgroundPrompt" readonly style="min-height:100px">You are a precise English-Chinese business translation assistant. If the input is English, translate it completely into Simplified Chinese. If it is Chinese, translate it into natural professional English. If Arabic, translate it to Simplified Chinese. If an image is attached, first transcribe all visible text faithfully, then translate it. Preserve names, email addresses, URLs, numbers, prices, currencies, quantities, sizes, dates, delivery terms, and negations exactly. Never invent unreadable words; list uncertain text. Return original text, full translation, and uncertainty notes.</textarea>
 </div>
 
 <div class="card">
@@ -132,8 +134,15 @@ function saveSettings(){
   setStatus('backendStatus', '设置已保存。AI 供应商密钥不会放在公开网页中；此处口令只用于保护你的 Worker。');
 }
 el('saveBackend').addEventListener('click', saveSettings);
-el('openPlayground').addEventListener('click', () => {
-  window.open('https://playground.ai.cloudflare.com/?model=%40cf%2Fgoogle%2Fgemma-4-26b-a4b-it', '_blank', 'noopener');
+el('openPlayground').addEventListener('click', async () => {
+  const playgroundUrl = 'https://playground.ai.cloudflare.com/?model=%40cf%2Fgoogle%2Fgemma-4-26b-a4b-it';
+  window.open(playgroundUrl, '_blank', 'noopener');
+  try {
+    await navigator.clipboard.writeText(el('playgroundPrompt').value);
+    setStatus('playgroundStatus', '已打开模型试用页，翻译指令已复制。进入新页面后，把指令粘贴到模型提示框，再上传截图或粘贴文字即可。');
+  } catch (error) {
+    setStatus('playgroundStatus', '已打开模型试用页。若提示框需要翻译要求，请复制下方指令并粘贴进去，再上传截图或粘贴文字。');
+  }
 });
 
 el('testBackend').addEventListener('click', async () => {
